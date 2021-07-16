@@ -179,7 +179,9 @@ def histogram(
 
     print(spork_values.describe())
     print(jdime_values.describe())
+    print(jdimeimproved_values.describe())
     print(pg.wilcoxon(spork_values, jdime_values, tail="two-sided"))
+    print(pg.wilcoxon(spork_values, jdimeimproved_values, tail="two-sided"))
 
     plt.show()
 
