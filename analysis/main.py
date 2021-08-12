@@ -35,7 +35,7 @@ def plot_git_diff_sizes():
     histogram(
         spork_values=aligned_file_merges.spork_line_diff_size,
         jdime_values=aligned_file_merges.jdime_line_diff_size,
-        jdimeimproved_values=aligned_file_merges.jdimeimproved_line_diff_size,
+        automergeptm_values=aligned_file_merges.automergeptm_line_diff_size,
         bins=bins,
         xlabel="GitDiff size (insertions + deletions)",
     )
@@ -55,7 +55,7 @@ def plot_runtimes():
     histogram(
         spork_values=aligned_file_merges.spork_runtime,
         jdime_values=aligned_file_merges.jdime_runtime,
-        jdimeimproved_values=aligned_file_merges.jdimeimproved_runtime,
+        automergeptm_values=aligned_file_merges.automergeptm_runtime,
         bins=bins,
         xlabel="Running time (seconds)",
     )
@@ -64,12 +64,12 @@ def plot_runtimes():
 def plot_mean_conflict_sizes():
     bins = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
     aligned_mean_conflict_sizes = get_aligned_mean_conflict_sizes().query(
-        "spork_avg_size > 0 or jdime_avg_size > 0 or jdimeimproved_avg_size > 0"
+        "spork_avg_size > 0 or jdime_avg_size > 0 or automergeptm_avg_size > 0"
     )
     histogram(
         spork_values=aligned_mean_conflict_sizes.spork_avg_size,
         jdime_values=aligned_mean_conflict_sizes.jdime_avg_size,
-        jdimeimproved_values=aligned_mean_conflict_sizes.jdimeimproved_avg_size,
+        automergeptm_values=aligned_mean_conflict_sizes.automergeptm_avg_size,
         bins=bins,
         xlabel="Mean conflict hunk size per file",
     )
@@ -90,7 +90,7 @@ def plot_conflict_hunk_quantities():
     histogram(
         spork_values=aligned_conflicts.spork_num_conflicts,
         jdime_values=aligned_conflicts.jdime_num_conflicts,
-        jdimeimproved_values=aligned_conflicts.jdimeimproved_num_conflicts,
+        automergeptm_values=aligned_conflicts.automergeptm_num_conflicts,
         bins=bins,
         xlabel="Amount of conflict hunks per file",
     )
@@ -109,7 +109,7 @@ def plot_char_diff_size():
     histogram(
         spork_values=aligned_file_merges.spork_char_diff_size,
         jdime_values=aligned_file_merges.jdime_char_diff_size,
-        jdimeimproved_values=aligned_file_merges.jdimeimproved_char_diff_size,
+        automergeptm_values=aligned_file_merges.automergeptm_char_diff_size,
         bins=bins,
         xlabel="Character diff size",
     )
@@ -131,16 +131,16 @@ def plot_char_diff_ratio():
     histogram(
         spork_values=aligned_file_merges.spork_char_diff_ratio,
         jdime_values=aligned_file_merges.jdime_char_diff_ratio,
-        jdimeimproved_values=aligned_file_merges.jdimeimproved_char_diff_ratio,
+        automergeptm_values=aligned_file_merges.automergeptm_char_diff_ratio,
         bins=bins,
         xlabel="Character diff ratio",
     )
 
 def histogram(
-    spork_values, jdime_values, jdimeimproved_values, bins, xlabel, ylabel="Frequency"
+    spork_values, jdime_values, automergeptm_values, bins, xlabel, ylabel="Frequency"
 ):
-    smallest_value = min(0, min(itertools.chain(spork_values, jdime_values, jdimeimproved_values)))
-    largest_value = max(itertools.chain(spork_values, jdime_values, jdimeimproved_values))
+    smallest_value = min(0, min(itertools.chain(spork_values, jdime_values, automergeptm_values)))
+    largest_value = max(itertools.chain(spork_values, jdime_values, automergeptm_values))
 
     has_lower_bound = smallest_value >= bins[0]
     has_upper_bound = largest_value < bins[-1]
@@ -156,17 +156,17 @@ def histogram(
     # limits values to be in the range of bins, but does not remove any values
     clipped_spork_values = np.clip(spork_values, bins[0], bins[-1])
     clipped_jdime_values = np.clip(jdime_values, bins[0], bins[-1])
-    clipped_jdimeimproved_values = np.clip(jdimeimproved_values, bins[0], bins[-1])
+    clipped_automergeptm_values = np.clip(automergeptm_values, bins[0], bins[-1])
 
     _, ax = plt.subplots()
     plt.hist(
-        [clipped_spork_values, clipped_jdime_values, clipped_jdimeimproved_values],
+        [clipped_spork_values, clipped_jdime_values, clipped_automergeptm_values],
         bins=bins,
     )
     set_hatches(ax)
 
     handles = [ax.patches[0], ax.patches[len(ax.patches) // 2], ax.patches[-1]]
-    labels = ["Spork", "JDime", "JDimeImproved"]
+    labels = ["Spork", "JDime", "AutoMergePTM"]
     plt.legend(handles, labels)
     plt.xticks(bins)
     plt.tick_params(axis="both", which="major", labelsize=20)
@@ -179,9 +179,9 @@ def histogram(
 
     print(spork_values.describe())
     print(jdime_values.describe())
-    print(jdimeimproved_values.describe())
+    print(automergeptm_values.describe())
     print(pg.wilcoxon(spork_values, jdime_values, tail="two-sided"))
-    print(pg.wilcoxon(spork_values, jdimeimproved_values, tail="two-sided"))
+    print(pg.wilcoxon(spork_values, automergeptm_values, tail="two-sided"))
 
     plt.show()
 
@@ -220,9 +220,9 @@ def get_aligned_mean_conflict_sizes():
 
     spork_conflicts = mean_conflict_sizes(non_fail_conflict_merges, "spork")
     jdime_conflicts = mean_conflict_sizes(non_fail_conflict_merges, "jdime")
-    jdimeimproved_conflicts = mean_conflict_sizes(non_fail_conflict_merges, "jdimeimproved")
+    automergeptm_conflicts = mean_conflict_sizes(non_fail_conflict_merges, "automergeptm")
 
-    return spork_conflicts.merge(jdime_conflicts, on="merge_dir").merge(jdimeimproved_conflicts, on="merge_dir")
+    return spork_conflicts.merge(jdime_conflicts, on="merge_dir").merge(automergeptm_conflicts, on="merge_dir")
 
 
 def mean_conflict_sizes(frame: pd.DataFrame, tool: str):
