@@ -177,6 +177,9 @@ def histogram(
     ticklabels = list(map(get_ticklabel, bins))
     ax.set_xticklabels(ticklabels)
 
+    friedman = scipy.stats.friedmanchisquare(spork_values, jdime_values, automergeptm_values)
+    print(f"Friedman Chi Squared p-value: {friedman.pvalue}")
+
     print(spork_values.describe())
     print(jdime_values.describe())
     print(automergeptm_values.describe())
