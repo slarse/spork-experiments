@@ -180,8 +180,8 @@ def histogram(
     print(spork_values.describe())
     print(jdime_values.describe())
     print(automergeptm_values.describe())
-    print(pg.wilcoxon(spork_values, jdime_values, tail="two-sided"))
-    print(pg.wilcoxon(spork_values, automergeptm_values, tail="two-sided"))
+    print(pg.wilcoxon(spork_values, jdime_values, alternative="two-sided"))
+    print(pg.wilcoxon(spork_values, automergeptm_values, alternative="two-sided"))
 
     plt.show()
 
