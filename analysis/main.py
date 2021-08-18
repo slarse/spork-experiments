@@ -42,22 +42,15 @@ def plot_git_diff_sizes():
 
 
 def plot_runtimes():
+    running_times = pd.read_csv(THIS_DIR / "results" / "running_times.csv")
     bins = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5]
-    non_fail_merges = FILE_MERGE_EVALS[
-        ~FILE_MERGE_EVALS.merge_dir.isin(FAIL_MERGE_DIRS)
-    ]
-    aligned_file_merges = get_aligned_results(
-        merge_id_column="merge_dir",
-        tool_column="merge_cmd",
-        data_column="runtime",
-        frame=non_fail_merges,
-    )
+    median_running_times = compute_median_running_times(running_times)
     histogram(
-        spork_values=aligned_file_merges.spork_runtime,
-        jdime_values=aligned_file_merges.jdime_runtime,
-        automergeptm_values=aligned_file_merges.automergeptm_runtime,
+        spork_values=median_running_times.spork,
+        jdime_values=median_running_times.jdime,
+        automergeptm_values=median_running_times.automergeptm,
         bins=bins,
-        xlabel="Running time (seconds)",
+        xlabel="Median running time of 10 executions (seconds)",
     )
 
 
@@ -241,6 +234,8 @@ def avg_chunk_size(row):
         return row.conflict_size / row.num_conflicts
     return 0
 
+def compute_median_running_times(running_times: pd.DataFrame) -> pd.DataFrame:
+    return running_times.groupby(["merge_dir", "merge_cmd"])["running_time"].median().unstack()
 
 if __name__ == "__main__":
     plot_conflict_hunk_quantities()
