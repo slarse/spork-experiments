@@ -13,9 +13,14 @@ THIS_DIR = pathlib.Path(__file__).parent
 sns.set(font_scale=3, palette="pastel", style="ticks", context="paper")
 
 FILE_MERGE_EVALS = pd.read_csv(THIS_DIR / "results" / "file_merge_evaluations.csv")
+TOOLS = ["spork", "jdime", "automergeptm"]
 
 # merge directories in which JDime or Spork (or both) exhibit fails/conflicts
-FAIL_MERGE_DIRS = set(FILE_MERGE_EVALS.query("outcome == 'fail' or outcome == 'timeout'").merge_dir.unique())
+FAIL_MERGE_DIRS = set(
+    FILE_MERGE_EVALS.query(
+        "outcome == 'fail' or outcome == 'timeout'"
+    ).merge_dir.unique()
+)
 CONFLICT_MERGE_DIRS = set(
     FILE_MERGE_EVALS.query("outcome == 'conflict'").merge_dir.unique()
 )
@@ -25,17 +30,14 @@ def plot_git_diff_sizes():
     filtered_file_merges = FILE_MERGE_EVALS[
         ~FILE_MERGE_EVALS.merge_dir.isin(FAIL_MERGE_DIRS | CONFLICT_MERGE_DIRS)
     ]
-    aligned_file_merges = get_aligned_results(
-        merge_id_column="merge_dir",
-        tool_column="merge_cmd",
-        data_column="line_diff_size",
-        frame=filtered_file_merges,
+    aligned_file_merges = (
+        filtered_file_merges.groupby(["merge_dir", "merge_cmd"])
+        .line_diff_size.sum()
+        .unstack()
     )
     bins = [0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650]
     histogram(
-        spork_values=aligned_file_merges.spork_line_diff_size,
-        jdime_values=aligned_file_merges.jdime_line_diff_size,
-        automergeptm_values=aligned_file_merges.automergeptm_line_diff_size,
+        aligned_file_merges,
         bins=bins,
         xlabel="GitDiff size (insertions + deletions)",
     )
@@ -46,9 +48,7 @@ def plot_runtimes():
     bins = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5]
     median_running_times = compute_median_running_times(running_times)
     histogram(
-        spork_values=median_running_times.spork,
-        jdime_values=median_running_times.jdime,
-        automergeptm_values=median_running_times.automergeptm,
+        median_running_times,
         bins=bins,
         xlabel="Median running time of 10 executions (seconds)",
     )
@@ -57,12 +57,10 @@ def plot_runtimes():
 def plot_mean_conflict_sizes():
     bins = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
     aligned_mean_conflict_sizes = get_aligned_mean_conflict_sizes().query(
-        "spork_avg_size > 0 or jdime_avg_size > 0 or automergeptm_avg_size > 0"
+        "spork > 0 or jdime > 0 or automergeptm > 0"
     )
     histogram(
-        spork_values=aligned_mean_conflict_sizes.spork_avg_size,
-        jdime_values=aligned_mean_conflict_sizes.jdime_avg_size,
-        automergeptm_values=aligned_mean_conflict_sizes.automergeptm_avg_size,
+        aligned_mean_conflict_sizes,
         bins=bins,
         xlabel="Mean conflict hunk size per file",
     )
@@ -71,69 +69,64 @@ def plot_mean_conflict_sizes():
 def plot_conflict_hunk_quantities():
     bins = [0, 1, 2, 3, 4, 5]
     non_fail_conflict_dirs = CONFLICT_MERGE_DIRS - FAIL_MERGE_DIRS
-    conflicts = FILE_MERGE_EVALS[
-        FILE_MERGE_EVALS.merge_dir.isin(non_fail_conflict_dirs)
-    ]
-    aligned_conflicts = get_aligned_results(
-        merge_id_column="merge_dir",
-        tool_column="merge_cmd",
-        data_column="num_conflicts",
-        frame=conflicts,
+    aligned_conflicts = (
+        FILE_MERGE_EVALS[FILE_MERGE_EVALS.merge_dir.isin(non_fail_conflict_dirs)]
+        .groupby(["merge_dir", "merge_cmd"])
+        .num_conflicts.sum()
+        .unstack()
     )
     histogram(
-        spork_values=aligned_conflicts.spork_num_conflicts,
-        jdime_values=aligned_conflicts.jdime_num_conflicts,
-        automergeptm_values=aligned_conflicts.automergeptm_num_conflicts,
+        aligned_conflicts,
         bins=bins,
         xlabel="Amount of conflict hunks per file",
     )
+
 
 def plot_char_diff_size():
     bins = [0, 1000, 2000, 3000, 4000, 5000, 6000]
     filtered_file_merges = FILE_MERGE_EVALS[
         ~FILE_MERGE_EVALS.merge_dir.isin(FAIL_MERGE_DIRS | CONFLICT_MERGE_DIRS)
     ]
-    aligned_file_merges = get_aligned_results(
-        merge_id_column="merge_dir",
-        tool_column="merge_cmd",
-        data_column="char_diff_size",
-        frame=filtered_file_merges,
+    aligned_file_merges = (
+        filtered_file_merges.groupby(["merge_dir", "merge_cmd"])
+        .char_diff_size.sum()
+        .unstack()
     )
     histogram(
-        spork_values=aligned_file_merges.spork_char_diff_size,
-        jdime_values=aligned_file_merges.jdime_char_diff_size,
-        automergeptm_values=aligned_file_merges.automergeptm_char_diff_size,
+        aligned_file_merges,
         bins=bins,
         xlabel="Character diff size",
     )
 
 
-
-
 def plot_char_diff_ratio():
-    bins = [.75, .8, .85, .9, .95, 1]
+    bins = [0.75, 0.8, 0.85, 0.9, 0.95, 1]
     filtered_file_merges = FILE_MERGE_EVALS[
         ~FILE_MERGE_EVALS.merge_dir.isin(FAIL_MERGE_DIRS | CONFLICT_MERGE_DIRS)
     ]
-    aligned_file_merges = get_aligned_results(
-        merge_id_column="merge_dir",
-        tool_column="merge_cmd",
-        data_column="char_diff_ratio",
-        frame=filtered_file_merges,
+    aligned_file_merges = (
+        filtered_file_merges.groupby(["merge_dir", "merge_cmd"])
+        .char_diff_ratio.sum()
+        .unstack()
     )
     histogram(
-        spork_values=aligned_file_merges.spork_char_diff_ratio,
-        jdime_values=aligned_file_merges.jdime_char_diff_ratio,
-        automergeptm_values=aligned_file_merges.automergeptm_char_diff_ratio,
+        aligned_file_merges,
         bins=bins,
         xlabel="Character diff ratio",
     )
 
-def histogram(
-    spork_values, jdime_values, automergeptm_values, bins, xlabel, ylabel="Frequency"
-):
-    smallest_value = min(0, min(itertools.chain(spork_values, jdime_values, automergeptm_values)))
-    largest_value = max(itertools.chain(spork_values, jdime_values, automergeptm_values))
+
+def histogram(data, bins, xlabel, ylabel="Frequency"):
+    spork_values = data.spork
+    jdime_values = data.jdime
+    automergeptm_values = data.automergeptm
+
+    smallest_value = min(
+        0, min(itertools.chain(spork_values, jdime_values, automergeptm_values))
+    )
+    largest_value = max(
+        itertools.chain(spork_values, jdime_values, automergeptm_values)
+    )
 
     has_lower_bound = smallest_value >= bins[0]
     has_upper_bound = largest_value < bins[-1]
@@ -172,7 +165,9 @@ def histogram(
     ticklabels = list(map(get_ticklabel, bins))
     ax.set_xticklabels(ticklabels)
 
-    friedman = scipy.stats.friedmanchisquare(spork_values, jdime_values, automergeptm_values)
+    friedman = scipy.stats.friedmanchisquare(
+        spork_values, jdime_values, automergeptm_values
+    )
     print(f"Friedman Chi Squared p-value: {friedman.pvalue}")
 
     print(spork_values.describe())
@@ -187,27 +182,8 @@ def histogram(
 def set_hatches(ax):
     for patch in ax.patches[len(ax.patches) // 3 :]:
         patch.set_hatch("/")
-    for patch in ax.patches[int(2/3 * len(ax.patches)) :]:
+    for patch in ax.patches[int(2 / 3 * len(ax.patches)) :]:
         patch.set_hatch("x")
-
-
-def get_aligned_results(
-    merge_id_column: str,
-    data_column: str,
-    tool_column: str,
-    frame: pd.DataFrame,
-) -> pd.DataFrame:
-    tools = frame[tool_column].unique()
-    assert len(tools) > 0
-
-    aligned_frame = frame[[merge_id_column]].drop_duplicates()
-    for tool in tools:
-        tool_frame = frame.query(f"{tool_column} == '{tool}'")[
-            [merge_id_column, data_column]
-        ].rename(columns={data_column: f"{tool}_{data_column}"})
-        aligned_frame = aligned_frame.merge(tool_frame, on=merge_id_column)
-
-    return aligned_frame
 
 
 def get_aligned_mean_conflict_sizes():
@@ -215,29 +191,26 @@ def get_aligned_mean_conflict_sizes():
     non_fail_conflict_merges = FILE_MERGE_EVALS[
         FILE_MERGE_EVALS.merge_dir.isin(non_fail_conflict_dirs)
     ]
-
-    spork_conflicts = mean_conflict_sizes(non_fail_conflict_merges, "spork")
-    jdime_conflicts = mean_conflict_sizes(non_fail_conflict_merges, "jdime")
-    automergeptm_conflicts = mean_conflict_sizes(non_fail_conflict_merges, "automergeptm")
-
-    return spork_conflicts.merge(jdime_conflicts, on="merge_dir").merge(automergeptm_conflicts, on="merge_dir")
-
-
-def mean_conflict_sizes(frame: pd.DataFrame, tool: str):
-    cmd_mean_conflict_sizes = frame[frame.merge_cmd == tool].merge_dir.to_frame()
-    cmd_mean_conflict_sizes[f"{tool}_avg_size"] = frame[frame.merge_cmd == tool].apply(
-        avg_chunk_size, axis=1
+    return (
+        non_fail_conflict_merges.groupby(["merge_dir", "merge_cmd"])[
+            ["num_conflicts", "conflict_size"]
+        ]
+        .apply(avg_chunk_size)
+        .unstack()
     )
-    return cmd_mean_conflict_sizes
 
 
 def avg_chunk_size(row):
-    if row.num_conflicts:
-        return row.conflict_size / row.num_conflicts
-    return 0
+    return int(row.conflict_size) / max(1, int(row.num_conflicts))
+
 
 def compute_median_running_times(running_times: pd.DataFrame) -> pd.DataFrame:
-    return running_times.groupby(["merge_dir", "merge_cmd"])["running_time"].median().unstack()
+    return (
+        running_times.groupby(["merge_dir", "merge_cmd"])["running_time"]
+        .median()
+        .unstack()
+    )
+
 
 if __name__ == "__main__":
     plot_conflict_hunk_quantities()
