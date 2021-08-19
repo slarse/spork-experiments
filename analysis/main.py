@@ -142,7 +142,9 @@ def histogram(
         if bin_value == bins[0] and not has_lower_bound:
             return str(int(math.floor(smallest_value)))
         elif bin_value == bins[-1] and not has_upper_bound:
-            return str(int(math.ceil(largest_value)))
+            # bins are exclusive to the right, so max bin must be 1 larger
+            max_bin = int(math.ceil(largest_value + 1))
+            return str(max_bin)
         else:
             return str(bin_value)
 
