@@ -75,11 +75,24 @@ def plot_conflict_hunk_quantities():
         .num_conflicts.sum()
         .unstack()
     )
+    print_conflict_quantity_details(aligned_conflicts)
     histogram(
         aligned_conflicts,
         bins=bins,
         xlabel="Amount of conflict hunks per file",
     )
+
+
+def print_conflict_quantity_details(conflicts: pd.DataFrame) -> None:
+    print(
+        f"Amount of file merges with at least one conflict from one tool:\n\t{len(conflicts)}"
+    )
+
+    print(f"Amount of files with conflicts per tool:")
+    print_tool_results(conflicts, callback=np.count_nonzero)
+
+    print(f"Total amount of conflict hunks per tool:")
+    print_tool_results(conflicts, callback=np.sum)
 
 
 def plot_char_diff_size():
@@ -170,9 +183,6 @@ def histogram(data, bins, xlabel, ylabel="Frequency"):
     )
     print(f"Friedman Chi Squared p-value: {friedman.pvalue}")
 
-    print(spork_values.describe())
-    print(jdime_values.describe())
-    print(automergeptm_values.describe())
     print(pg.wilcoxon(spork_values, jdime_values, alternative="two-sided"))
     print(pg.wilcoxon(spork_values, automergeptm_values, alternative="two-sided"))
 
@@ -210,6 +220,12 @@ def compute_median_running_times(running_times: pd.DataFrame) -> pd.DataFrame:
         .median()
         .unstack()
     )
+
+
+def print_tool_results(data: pd.DataFrame, callback) -> None:
+    for tool in TOOLS:
+        result = callback(getattr(data, tool))
+        print(f"\t{tool.upper()}: {result}")
 
 
 if __name__ == "__main__":
