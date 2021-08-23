@@ -36,6 +36,7 @@ def plot_git_diff_sizes():
         .unstack()
     )
     bins = [0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650]
+    print_diff_size_details(aligned_file_merges)
     histogram(
         aligned_file_merges,
         bins=bins,
@@ -43,15 +44,62 @@ def plot_git_diff_sizes():
     )
 
 
+def print_diff_size_details(diff_sizes: pd.DataFrame) -> None:
+    print(f"Amount of file merges considered:\n\t{len(diff_sizes)}")
+
+    print("Median diff sizes per tool")
+    print_tool_results(diff_sizes, callback=np.median)
+
+    print("Max diff sizes per tool")
+    print_tool_results(diff_sizes, callback=np.max)
+
+    print_size_compared_to_spork(diff_sizes)
+
+
 def plot_runtimes():
     running_times = pd.read_csv(THIS_DIR / "results" / "running_times.csv")
     bins = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5]
     median_running_times = compute_median_running_times(running_times)
+    print_running_time_details(median_running_times)
     histogram(
         median_running_times,
         bins=bins,
         xlabel="Median running time of 10 executions (seconds)",
     )
+
+
+def print_running_time_details(running_times: pd.DataFrame) -> None:
+    print(f"Amount of merge scenarios where all tools succeed:\n\t{len(running_times)}")
+
+    print("Sum of medians per tool:")
+    print_tool_results(running_times, callback=np.sum)
+
+    print("Median of running times per tool:")
+    print_tool_results(running_times, callback=np.median)
+
+    print("Max running times per tool:")
+    print_tool_results(running_times, callback=np.max)
+
+    print(f"Amount of timeouts per tool:")
+    for tool in TOOLS:
+        num_timeouts = len(
+            FILE_MERGE_EVALS.query(f"merge_cmd == '{tool}' and outcome == 'timeout'")
+        )
+        print(f"\t{tool.upper()}: {num_timeouts}")
+
+    def count(predicate):
+        def _count(data):
+            return sum(int(predicate(v)) for v in data if predicate(v))
+
+        return _count
+
+    print("Amount of running times per tool < .5 seconds")
+    print_tool_results(running_times, callback=count(lambda x: x < 0.5))
+
+    print("Amount of running times per tool >= 4 seconds")
+    print_tool_results(running_times, callback=count(lambda x: x >= 4))
+
+    print_size_compared_to_spork(running_times)
 
 
 def plot_mean_conflict_sizes():
@@ -75,11 +123,39 @@ def plot_conflict_hunk_quantities():
         .num_conflicts.sum()
         .unstack()
     )
+    print_conflict_quantity_details(aligned_conflicts)
     histogram(
         aligned_conflicts,
         bins=bins,
         xlabel="Amount of conflict hunks per file",
     )
+
+
+def print_conflict_quantity_details(conflicts: pd.DataFrame) -> None:
+    print(
+        f"Amount of file merges with at least one conflict from one tool:\n\t{len(conflicts)}"
+    )
+
+    print(f"Amount of files with conflicts per tool:")
+    print_tool_results(conflicts, callback=np.count_nonzero)
+
+    print(f"Total amount of conflict hunks per tool:")
+    print_tool_results(conflicts, callback=np.sum)
+
+    print_size_compared_to_spork(conflicts)
+
+
+def print_size_compared_to_spork(frame: pd.DataFrame) -> None:
+    print("Amount of cases where where SPORK's results are lesser, equal, greater:")
+
+    def compute_comparison(cmp: str) -> str:
+        amount = len(frame.query(cmp))
+        return f"\t{cmp}: {amount}"
+
+    for tool in filter(lambda t: t != "spork", TOOLS):
+        print(compute_comparison(f"spork < {tool}"))
+        print(compute_comparison(f"spork == {tool}"))
+        print(compute_comparison(f"spork > {tool}"))
 
 
 def plot_char_diff_size():
@@ -92,6 +168,7 @@ def plot_char_diff_size():
         .char_diff_size.sum()
         .unstack()
     )
+    print_diff_size_details(aligned_file_merges)
     histogram(
         aligned_file_merges,
         bins=bins,
@@ -170,9 +247,6 @@ def histogram(data, bins, xlabel, ylabel="Frequency"):
     )
     print(f"Friedman Chi Squared p-value: {friedman.pvalue}")
 
-    print(spork_values.describe())
-    print(jdime_values.describe())
-    print(automergeptm_values.describe())
     print(pg.wilcoxon(spork_values, jdime_values, alternative="two-sided"))
     print(pg.wilcoxon(spork_values, automergeptm_values, alternative="two-sided"))
 
@@ -210,6 +284,22 @@ def compute_median_running_times(running_times: pd.DataFrame) -> pd.DataFrame:
         .median()
         .unstack()
     )
+
+
+def print_tool_results(data: pd.DataFrame, callback) -> None:
+    results = {}
+    for tool in TOOLS:
+        results[tool] = callback(getattr(data, tool))
+        print(f"\t{tool.upper()}: {results[tool]}")
+
+    for tool in filter(lambda t: t != "spork", TOOLS):
+        spork_result = results["spork"]
+        other_result = results[tool]
+        diff = other_result - spork_result
+        reduction = 100 * (other_result - spork_result) / other_result
+        print(
+            f"\tSPORK reduction vs {tool.upper()}: absolute={diff}, percentage={reduction:.2f}%"
+        )
 
 
 if __name__ == "__main__":
