@@ -114,12 +114,26 @@ def plot_conflict_sizes():
         .conflict_size.sum()
         .unstack()
     )
+    print_conflict_size_details(aligned_conflict_sizes)
     histogram(
         aligned_conflict_sizes,
         bins=bins,
-        xlabel="Conflict hunk size per file",
+        xlabel="Conflict hunk size per file merge",
         bound_to_label={left_bound: "0"},
     )
+
+
+def print_conflict_size_details(conflict_sizes: pd.DataFrame) -> None:
+    print(f"Amount of file merges considered:\n\t{len(conflict_sizes)}")
+
+    print("Max conflict sizes per tool:")
+    print_tool_results(conflict_sizes, callback=np.max)
+
+    print("Median conflict sizes per tool:")
+    print_tool_results(conflict_sizes, callback=np.median)
+
+    print("Total conflict sizes per tool:")
+    print_tool_results(conflict_sizes, callback=np.sum)
 
 
 def plot_conflict_hunk_quantities():
@@ -135,7 +149,7 @@ def plot_conflict_hunk_quantities():
     histogram(
         aligned_conflicts,
         bins=bins,
-        xlabel="Amount of conflict hunks per file",
+        xlabel="Amount of conflict hunks per file merge",
     )
 
 
