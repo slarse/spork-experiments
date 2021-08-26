@@ -102,18 +102,22 @@ def print_running_time_details(running_times: pd.DataFrame) -> None:
     print_size_compared_to_spork(running_times)
 
 
-def plot_mean_conflict_sizes():
+def plot_conflict_sizes():
     # note: using [-3, 1) as the first bin is a hack to ensure that all bins
     # are of equal size, graphically
     left_bound = -3
     bins = [left_bound, 1, 5, 9, 13, 17, 21, 25, 29, 33]
-    aligned_mean_conflict_sizes = get_aligned_mean_conflict_sizes().query(
-        "spork > 0 or jdime > 0 or automergeptm > 0"
+    non_fail_conflict_dirs = CONFLICT_MERGE_DIRS - FAIL_MERGE_DIRS
+    aligned_conflict_sizes = (
+        FILE_MERGE_EVALS[FILE_MERGE_EVALS.merge_dir.isin(non_fail_conflict_dirs)]
+        .groupby(["merge_dir", "merge_cmd"])
+        .conflict_size.sum()
+        .unstack()
     )
     histogram(
-        aligned_mean_conflict_sizes,
+        aligned_conflict_sizes,
         bins=bins,
-        xlabel="Mean conflict hunk size per file",
+        xlabel="Conflict hunk size per file",
         bound_to_label={left_bound: "0"},
     )
 
@@ -267,24 +271,6 @@ def set_hatches(ax):
         patch.set_hatch("x")
 
 
-def get_aligned_mean_conflict_sizes():
-    non_fail_conflict_dirs = CONFLICT_MERGE_DIRS - FAIL_MERGE_DIRS
-    non_fail_conflict_merges = FILE_MERGE_EVALS[
-        FILE_MERGE_EVALS.merge_dir.isin(non_fail_conflict_dirs)
-    ]
-    return (
-        non_fail_conflict_merges.groupby(["merge_dir", "merge_cmd"])[
-            ["num_conflicts", "conflict_size"]
-        ]
-        .apply(avg_chunk_size)
-        .unstack()
-    )
-
-
-def avg_chunk_size(row):
-    return int(row.conflict_size) / max(1, int(row.num_conflicts))
-
-
 def compute_median_running_times(running_times: pd.DataFrame) -> pd.DataFrame:
     return (
         running_times.groupby(["merge_dir", "merge_cmd"])["running_time"]
@@ -311,7 +297,7 @@ def print_tool_results(data: pd.DataFrame, callback) -> None:
 
 if __name__ == "__main__":
     plot_conflict_hunk_quantities()
-    plot_mean_conflict_sizes()
+    plot_conflict_sizes()
     plot_runtimes()
     plot_git_diff_sizes()
     plot_char_diff_size()
