@@ -103,9 +103,9 @@ def print_running_time_details(running_times: pd.DataFrame) -> None:
 
 
 def plot_mean_conflict_sizes():
-    bins = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    bins = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
     aligned_mean_conflict_sizes = get_aligned_mean_conflict_sizes().query(
-        "spork > 0 and jdime > 0 and automergeptm > 0"
+        "spork > 0 or jdime > 0 or automergeptm > 0"
     )
     histogram(
         aligned_mean_conflict_sizes,
