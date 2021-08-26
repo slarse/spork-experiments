@@ -103,7 +103,10 @@ def print_running_time_details(running_times: pd.DataFrame) -> None:
 
 
 def plot_mean_conflict_sizes():
-    bins = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
+    # note: using [-3, 1) as the first bin is a hack to ensure that all bins
+    # are of equal size, graphically
+    left_bound = -3
+    bins = [left_bound, 1, 5, 9, 13, 17, 21, 25, 29, 33]
     aligned_mean_conflict_sizes = get_aligned_mean_conflict_sizes().query(
         "spork > 0 or jdime > 0 or automergeptm > 0"
     )
@@ -111,6 +114,7 @@ def plot_mean_conflict_sizes():
         aligned_mean_conflict_sizes,
         bins=bins,
         xlabel="Mean conflict hunk size per file",
+        bound_to_label={left_bound: "0"},
     )
 
 
@@ -193,7 +197,8 @@ def plot_char_diff_ratio():
     )
 
 
-def histogram(data, bins, xlabel, ylabel="Frequency"):
+def histogram(data, bins, xlabel, ylabel="Frequency", bound_to_label=None):
+    bound_to_label = bound_to_label or {}
     spork_values = data.spork
     jdime_values = data.jdime
     automergeptm_values = data.automergeptm
@@ -209,6 +214,8 @@ def histogram(data, bins, xlabel, ylabel="Frequency"):
     has_upper_bound = largest_value < bins[-1]
 
     def get_ticklabel(bin_value):
+        if bin_value in bound_to_label:
+            return bound_to_label[bin_value]
         if bin_value == bins[0] and not has_lower_bound:
             return str(int(math.floor(smallest_value)))
         elif bin_value == bins[-1] and not has_upper_bound:
