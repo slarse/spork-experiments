@@ -64,14 +64,14 @@ def plot_runtimes():
     histogram(
         median_running_times,
         bins=bins,
-        xlabel="Median running time of 10 executions (seconds)",
+        xlabel="Running time (seconds)",
     )
 
 
 def print_running_time_details(running_times: pd.DataFrame) -> None:
     print(f"Amount of merge scenarios where all tools succeed:\n\t{len(running_times)}")
 
-    print("Sum of medians per tool:")
+    print("Sum of running times per tool:")
     print_tool_results(running_times, callback=np.sum)
 
     print("Median of running times per tool:")
@@ -112,7 +112,7 @@ def plot_conflict_sizes():
     histogram(
         aligned_conflict_sizes,
         bins=bins,
-        xlabel="Conflict size per file merge",
+        xlabel="Amount of conflicting lines",
         bound_to_label={left_bound: "0"},
     )
 
@@ -154,7 +154,7 @@ def plot_conflict_hunk_quantities():
     histogram(
         aligned_conflicts,
         bins=bins,
-        xlabel="Amount of conflict hunks per file merge",
+        xlabel="Amount of conflict hunks",
     )
 
 
