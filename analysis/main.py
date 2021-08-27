@@ -87,12 +87,6 @@ def print_running_time_details(running_times: pd.DataFrame) -> None:
         )
         print(f"\t{tool.upper()}: {num_timeouts}")
 
-    def count(predicate):
-        def _count(data):
-            return sum(int(predicate(v)) for v in data if predicate(v))
-
-        return _count
-
     print("Amount of running times per tool < .5 seconds")
     print_tool_results(running_times, callback=count(lambda x: x < 0.5))
 
@@ -118,7 +112,7 @@ def plot_conflict_sizes():
     histogram(
         aligned_conflict_sizes,
         bins=bins,
-        xlabel="Conflict hunk size per file merge",
+        xlabel="Conflict size per file merge",
         bound_to_label={left_bound: "0"},
     )
 
@@ -134,6 +128,17 @@ def print_conflict_size_details(conflict_sizes: pd.DataFrame) -> None:
 
     print("Total conflict sizes per tool:")
     print_tool_results(conflict_sizes, callback=np.sum)
+
+    print("Amount of files with >= 5 conflicting lines")
+    print_tool_results(conflict_sizes, callback=count(lambda size: size >= 5))
+
+    print("Amount of files with >= 10 conflicting lines")
+    print_tool_results(conflict_sizes, callback=count(lambda size: size >= 10))
+
+    print("Amount of files with >= 20 conflicting lines")
+    print_tool_results(conflict_sizes, callback=count(lambda size: size >= 20))
+
+    print_size_compared_to_spork(conflict_sizes)
 
 
 def plot_conflict_hunk_quantities():
@@ -291,6 +296,13 @@ def compute_median_running_times(running_times: pd.DataFrame) -> pd.DataFrame:
         .median()
         .unstack()
     )
+
+
+def count(predicate):
+    def _count(data):
+        return sum(int(predicate(v)) for v in data if predicate(v))
+
+    return _count
 
 
 def print_tool_results(data: pd.DataFrame, callback) -> None:
