@@ -1,0 +1,1 @@
+Bluelock/camel-spring-amqp/c31678d8644cd608d2b55d4f3e8c28c103c9604c/SpringAMQPEndpoint.java_b3dc5b056c73548c458ba0a6e581102d878c2a6c
